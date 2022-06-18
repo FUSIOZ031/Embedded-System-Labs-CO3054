@@ -1,5 +1,5 @@
 #include <stdio.h>
-#include <string.h>
+#include <time.h>
 #include "sdkconfig.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
@@ -7,83 +7,119 @@
 #include "esp_spi_flash.h"
 #include "freertos/queue.h"
 
-#define NumberOfTask 3
-#define delay 1000
-#define wait_time 100
 
-typedef struct Data
-{
-    int id;
-    int state;
-    int comingTask;
-} Data;
+static const uint32_t queue_length = 4;
+static QueueHandle_t aQueue;
 
-static QueueHandle_t queue;
+//message structure
+typedef struct AMessage{
+   int eDataID;
+   char *IDataValue;
+}xMessage;
 
-void readyTask(void *pv)
-{
-    for (int i = 0; i <= 100; i++)
-    {
-        Data task;
-        task.id = i;
-        if (i % 2 == 0)
-		{
-            task.state = 1; 
-		}
-        else if (i % 3 == 0)
-		{
-			task.state = 2; 
-		}
-        else if (i % 7 == 0)
-		{
-			task.state = 3; 
-		}
-        else
-		{
-			task.state = -1;
-		}
-        task.comingTask = 0;
-        xQueueSend(queue, &task, wait_time);
-        vTaskDelay(delay / portTICK_RATE_MS);
-    }
-    vTaskDelete(NULL);
+   
+void receptional_task(void *pvParameter){
+   static int taskID = 1;
+   while(1){
+      xMessage inputMessage;
+      inputMessage.eDataID = taskID;
+      switch(taskID){
+         case 1:
+            inputMessage.IDataValue = " This message is for fucntional task 1";
+            break;
+         case 2:
+            inputMessage.IDataValue = " This message is for fucntional task 2";
+            break;
+         case 3:
+            inputMessage.IDataValue = " This message is for fucntional task 2";
+            break;
+         case 4:
+            inputMessage.IDataValue = "No task execute this message";
+            break;    
+         default:
+            printf("ERROR task ID\n");
+            break;           
+      }
+      xQueueSend(aQueue, &inputMessage, 10);
+      if(taskID >= 4) taskID = 1;
+      else taskID++;
+      vTaskDelay(1000 / portTICK_RATE_MS);
+   }
+   vTaskDelete(NULL);
 }
 
-void runningTask(void *pv)
-{
-    Data task;
-    char *name_task;
-    name_task = (char *)pv;
-    for (;;)
-    {
-        if (xQueueReceive(queue, (void *)&task, wait_time) == pdTRUE)
-        {
-            if (((task.state == 1) && (!strcmp(name_task, "task1"))) || ((task.state == 2) && (!strcmp(name_task, "task2"))) || ((task.state == 3) && (!strcmp(name_task, "task3"))))
-                printf("%s comes and does the request id %d \n", name_task, task.id);
-            else
-            {
-                task.comingTask += 1;
-                if (NumberOfTask > task.comingTask)
-                    xQueueSendToFront(queue, &task, wait_time);
-                else
-                    printf("Warning: no task does the request id %d \n", task.id);
+void error_task(void *pvParameter){
+   xMessage message;
+   while(1){
+      if(aQueue != 0){
+         if(xQueuePeek(aQueue,(void *) &message, 10) == pdTRUE){
+            if(message.eDataID == 4){
+               if(xQueueReceive(aQueue,(void*) &message,10) == pdPASS){
+                  printf("Error: %s with data ID = %d.\n",message.IDataValue, message.eDataID);
+               }
             }
-        }
-        vTaskDelay(delay / portTICK_RATE_MS);
-    }
-    vTaskDelete(NULL);
+         }
+      }
+      vTaskDelay(1000/portTICK_RATE_MS);
+   }
+   vTaskDelete(NULL);
 }
 
-static const char *task0 = "task0";
-static const char *task1 = "task1";
-static const char *task2 = "task2";
-static const char *task3 = "task3";
+void functional_task_1(void *pvParameter){
+   xMessage message;
+   while(1){
+      if(aQueue != 0){
+         if(xQueuePeek(aQueue,(void *) &message, 10) == pdTRUE){
+            if(message.eDataID == 1){
+               if(xQueueReceive(aQueue,(void*) &message,10) == pdPASS){
+                  printf("Task 1 receive message: %s with data id = %d.\n",message.IDataValue, message.eDataID);
+               }
+            }
+         }
+      }
+      vTaskDelay(1000/portTICK_RATE_MS);
+   }
+   vTaskDelete(NULL);
+}
+void functional_task_2(void *pvParameter){
+   xMessage message;
+   while(1){
+      if(aQueue != 0){
+         if(xQueuePeek(aQueue,(void *) &message, 10) == pdTRUE){
+            if(message.eDataID == 2){
+               if(xQueueReceive(aQueue,(void*) &message,10) == pdPASS){
+                  printf("Task 2 receive message: %s with data id = %d.\n", message.IDataValue, message.eDataID);
+               }
+            }
+         }
+      }
+      vTaskDelay(1000/portTICK_RATE_MS);
+   }
+   vTaskDelete(NULL);
+}
+void functional_task_3(void *pvParameter){
+   xMessage message;
+   while(1){
+      if(aQueue != 0){
+         if(xQueuePeek(aQueue,(void *) &message, 10) == pdTRUE){
+            if(message.eDataID == 3){
+               if(xQueueReceive(aQueue,(void*) &message,10) == pdPASS){
+                  printf("Task 3 receive message: %s with data id = %d.\n",message.IDataValue, message.eDataID);
+               }
+            }
+         }
+      }
+      vTaskDelay(1000/portTICK_RATE_MS);
+   }
+   vTaskDelete(NULL);
+}
 
-void app_main(void)
-{
-    queue = xQueueCreate(10, sizeof(Data));
-    xTaskCreatePinnedToCore(&readyTask, "Task 0", 2048, (void *)task0, 2, NULL, 1);
-    xTaskCreatePinnedToCore(&runningTask, "Task 1", 2048, (void *)task1, 1, NULL, 1);
-    xTaskCreatePinnedToCore(&runningTask, "Task 2", 2048, (void *)task2, 1, NULL, 1);
-    xTaskCreatePinnedToCore(&runningTask, "Task 3", 2048, (void *)task3, 1, NULL, 1);
+
+void app_main(void){
+   aQueue = xQueueCreate(queue_length, sizeof(xMessage));
+   xTaskCreatePinnedToCore(&receptional_task,"receptional task",2048,NULL,2,NULL,1);
+   xTaskCreatePinnedToCore(&functional_task_1,"functional_task_1",2048,NULL,1,NULL,1);
+   xTaskCreatePinnedToCore(&functional_task_2,"functional_task_2",2048,NULL,1,NULL,1);
+   xTaskCreatePinnedToCore(&functional_task_3,"functional_task_3",2048,NULL,1,NULL,1);
+   xTaskCreatePinnedToCore(&error_task,"error_task",2048,NULL,1,NULL,1);
 }
