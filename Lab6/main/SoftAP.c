@@ -38,7 +38,7 @@ int app_main(void){
             .channel = 0,
             .authmode = WIFI_AUTH_OPEN,
             .ssid_hidden = 0,
-            .max_connection = 4,
+            .max_connection = 1,
             .beacon_interval = 100
         }
     };
