@@ -44,7 +44,7 @@ esp_err_t eventHandler ( void *ctx, system_event_t *event ){
                     authmode = "Unknown";
                     break;
             }
-            printf("ssid=%s, rssi=%d, authmode=%s\n", list[i].ssid, list[i].rssi, authmode);
+            printf("Wifi Name: %s, Signal Strength: %d, Auth=%s\n", list[i].ssid, list[i].rssi, authmode);
         }
         free(list);
     }
