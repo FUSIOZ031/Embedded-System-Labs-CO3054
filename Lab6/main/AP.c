@@ -51,8 +51,8 @@ int app_main(void){
     ESP_ERROR_CHECK(esp_event_loop_init(eventHandler, NULL));
     wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
     ESP_ERROR_CHECK(esp_wifi_init(&cfg));
-    ESP_ERROR_CHECK(esp_wifi_set_storage(WIFI_STORAGE_RAM));
-    ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
+    esp_wifi_set_storage(WIFI_STORAGE_RAM);
+    esp_wifi_set_mode(WIFI_MODE_STA);
     wifi_config_t sta_config = {
         .sta = {
             .ssid = AP_TARGET_SSID,
@@ -60,7 +60,7 @@ int app_main(void){
             .bssid_set = 0
         }
     };
-    ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_STA, &sta_config ));
-    ESP_ERROR_CHECK(esp_wifi_start());  
+    esp_wifi_set_config(WIFI_IF_STA, &sta_config );
+    esp_wifi_start();  
     return 0;
 }
